@@ -1,9 +1,13 @@
-const express=require('express')
+const express = require('express');
+const router = express.Router();
+
 const userModel=require('../Models/registeratin')
-const router=express.Router()
-const axios=require('axios')
 const nodemailer = require("nodemailer");
 var cron = require('node-cron');
+const axios=require('axios')
+
+const {JSDOM}=require('jsdom');
+const { findByIdAndUpdate, updateOne } = require('../Models/registeratin');
 
 const regex = /((([A-Za-z]{3,9}:(?:\/\/)?)(?:[-;:&=\+\$,\w]+@)?[A-Za-z0-9.-]+(:[0-9]+)?|(?:www.|[-;:&=\+\$,\w]+@)[A-Za-z0-9.-]+)((?:\/[\+~%\/.\w-_]*)?\??(?:[-\+=&;%@.\w_]*)#?(?:[\w]*))?)/
 const validator = require("validator");
@@ -20,8 +24,7 @@ function nameValidate(text) {
       );
   };
 
-const {JSDOM}=require('jsdom')
-router.post('/register',async function(req,res){
+const register=async function(req,res){
     try{
     let data=req.body
     if(!data){
@@ -71,116 +74,133 @@ return res.status(200).send({status:"success",message:"thankYou for regestering 
 catch(err){
     return res.status(400).send({status:false,message:err.message})
 }
-})
-
-
-
-router.get('/data',async function(req,res){
-try{
-        let a=await userModel.find().select({url:1,_id:0,email:1,name:1,range:1})
-        
-       let arr=[]
-       let resName=[]
-       let resEmail=[]
-       let resRange=[]
-       a.forEach((x,i,z)=>{
-        arr.push(x["url"])
-        resEmail.push(x["email"])
-        resName.push(x['name'])
-        resRange.push(x['range'])
-
-       })
-      
-
-const getProductUrl=(url)=>url
-async function getPrices(url){
-   const productUrl=getProductUrl(url)
-const {data:html}=await axios.get(productUrl)
-
-const dom=new JSDOM(html)
-const title=dom.window.document.querySelector('#title').textContent.trim()
-const pinnedPrice=dom.window.document.querySelector('.a-price .a-offscreen').textContent
-const link=url
-
-let pinnedPrices=pinnedPrice.slice(1)
-let pinned=pinnedPrices.split('')
-let price=pinned.splice(pinned.length-3,3)
-let finalprice=pinned.join('')
-
-const pinnedItem={
-   title:title,
-price:pinnedPrice,
-link:link,
-finalprice:finalprice
-
 }
-return (pinnedItem)
- }
- let ab=[]
-for(let i=0;i<arr.length;i++){
+
+
+const getData=async function(req,res){
+    try{
+            let a=await userModel.find({isDeleted:false}).select({url:1,_id:0,email:1,name:1,range:1})
+            
+           let arr=[]
+           let resName=[]
+           let resEmail=[]
+           let resRange=[]
+           a.forEach((x,i,z)=>{
+            arr.push(x["url"])
+            resEmail.push(x["email"])
+            resName.push(x['name'])
+            resRange.push(x['range'])
     
-ab.push(await getPrices(arr[i]))
-}
-
-
-
-const nodemailer = require('nodemailer');
-
-const transporter = nodemailer.createTransport({
- service: 'gmail',
- auth: {
-  user: 'p39744857@gmail.com',
-  pass: 'lagjrqdjlztikdmh',
- },
-});
-
-const sendEmail = (name,email,title,productPrice,link) => {
- const mailOptions = {
-  from: 'p39744857@gmail.com',
-  to: email,
-  subject: 'Email verification',
-  html:
-`<p>here is your product ${name} </p>`+
-`<p>Now you can buy it as the product was with in your specifed range</p>`+
-`<p>title:${title} </p>`+
-`<p>price:${productPrice} </p>`+
-`<p>link:"${link}</p>`
-
-};
-
-transporter.sendMail(mailOptions, function (error, info) {
-  if (error) {
-    console.log('Error in sending email  ' + error);
-    return true;
-  } else {
-   console.log('Email sent: ' + info.response);
-   return false;
-  }
- });
-};
-
-
-
-for(let i=0;i<ab.length;i++){
-    cron.schedule('0 */6 * * *', () => {
-        ab[i]['name']=resName[i]
-        ab[i]['email']=resEmail[i]
-        if(ab[i]['finalprice']<=resRange[i]){
-            console.log(resRange[i],ab[i]['finalprice'])
-   sendEmail(resName[i],resEmail[i],ab[i]['title'],ab[i]['price'],ab[i]['link'])
-        }else{
-            console.log(resRange[i],ab[i]['finalprice'])
-            console.log('sorry your product price havent reached your specified range yet')
+           })
+          
+    
+    const getProductUrl=(url)=>url
+    async function getPrices(url){
+       const productUrl=getProductUrl(url)
+    const {data:html}=await axios.get(productUrl)
+    
+    const dom=new JSDOM(html)
+    const title=dom.window.document.querySelector('#title #productTitle').textContent.trim()
+    const pinnedPrice=dom.window.document.querySelector('.a-price .a-offscreen').textContent
+    const link=url
+    
+    console.log(pinnedPrice)
+    let pinnedPrices=pinnedPrice.slice(1)
+    let pinned=pinnedPrices.split('')
+    let price=pinned.splice(pinned.length-3,3)
+    let Finalprice=pinned.join('')
+    let finalprice=''
+    for(let i=0;i<Finalprice.length;i++){
+        if(!isNaN(Finalprice[i])){
+            finalprice+=Finalprice[i]
         }
-   })
-}
-
-res.send({data:ab})
     }
-catch(err){
-    return res.status(400).send({status:false,message:err.message})
- }
-    })
+    console.log(finalprice)
+    const pinnedItem={
+       title:title,
+    price:pinnedPrice,
+    link:link,
+    finalprice:finalprice
+    
+    }
+    return (pinnedItem)
+     }
+     let ab=[]
+    for(let i=0;i<arr.length;i++){
+        
+    ab.push(await getPrices(arr[i]))
+    }
+    
+    
+    
+
+    const nodemailer = require('nodemailer');
+    
+    const transporter = nodemailer.createTransport({
+     service: 'gmail',
+     auth: {
+        user:'trackor82@gmail.com',
+        pass:'npksansfjwoprfxq'
+     },
+    });
+    
+    const sendEmail = (name,email,title,productPrice,link,range) => {
+     const mailOptions = {
+      from: 'trackor82@gmail.com',
+      to: email,
+      subject: 'Product Trackor',
+      html:
+    `<p>here is your product ${name} </p>`+
+    `<p>Now you can buy it as the product was less tha or equal to amount you specified in  range :${range}</p>`+
+    `<p>title:${title} </p>`+
+    `<p>price:${productPrice} </p>`+
+    `<p>link:"${link}</p>`
+    
+    
+    };
+    
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        console.log('Error in sending email  ' + error);
+        return true;
+      } else {
+       console.log('Email sent: ' + info.response);
+       return false;
+      }
+     });
+    };
+    
+    
+    
+    for(let i=0;i<ab.length;i++){
+        cron.schedule('* * * * *', () => {
+            ab[i]['name']=resName[i]
+            ab[i]['email']=resEmail[i]
+            ab[i]['range']=resRange[i]
+            if(Number(ab[i]['finalprice'])<=Number(resRange[i])){
+            sendEmail(resName[i],resEmail[i],ab[i]['title'],ab[i]['price'],ab[i]['link'],ab[i]['range'])
+            }else{
+                console.log('sorry your product price havent reached your specified range yet')
+                
+            }
+       })
+    }
+    
+    res.send({data:ab})
+        }
+    catch(err){
+        return res.status(400).send({status:false,message:err.message})
+     }
+        }    
 
 
-module.exports=router
+
+// Add input validation here
+router.post('/register', register);
+
+// Add error handling here
+router.get('/data', getData);
+
+
+
+module.exports = router;
