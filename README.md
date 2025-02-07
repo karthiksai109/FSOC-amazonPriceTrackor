@@ -1,1 +1,1 @@
-# FSOC-amazonPriceTrackor
+# FSOC-ProductPriceTrackor
